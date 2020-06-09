@@ -66,7 +66,6 @@ void config_list_widget::setname(QString n) {
     if(code != "" && code !="201" && code != "203" && code != "401" && !ret_ok) {
         info->setText(tr("Your account：%1").arg(code));
         stacked_widget->setCurrentWidget(container);
-        emit doconf();
         ret_ok = true;              //开启登录状态
         client->once = false;        //关闭第一次打开状态
         return ;
@@ -76,7 +75,6 @@ void config_list_widget::setname(QString n) {
 /* 客户端回调函数集 */
 void config_list_widget::setret_oss(int ret) {
     if(ret == 0) {
-        emit docheck();
         //qDebug()<<"init oss is 0";
     } else {
         //emit dologout();
@@ -93,9 +91,7 @@ void config_list_widget::setret_logout(int ret) {
 void config_list_widget::setret_conf(int ret) {
     //qDebug()<<ret<<"csacasca";
     if(ret == 0) {
-        emit doman();
         QFuture<void> res1 = QtConcurrent::run(this, &config_list_widget::handle_conf);
-        //emit doman();
     } else {
         //emit dologout();
     }
@@ -181,6 +177,7 @@ void config_list_widget::init_gui() {
     title2 = new QSvgWidget(":/new/image/96_color.svg");
     logout = new QLabel(this);
     login  = new QPushButton(tr("Sign in"),this);
+    mansync = new QTimer(this);
 
     //    gif = new QLabel(status);
     //    gif->setWindowFlags(Qt::FramelessWindowHint);//无边框
@@ -330,11 +327,21 @@ void config_list_widget::init_gui() {
         connect(list->get_item(btncnt)->get_swbtn(),SIGNAL(status(int,int)),this,SLOT(on_switch_button(int,int)));
     }
 
+    connect(mansync,&QTimer::timeout,[=] () {
+        emit doman();
+    });
+
     struct stat buffer;
     char conf_path[512]={0};
     //All.conf的
-    QString all_conf_path = QDir::homePath() + "/.cache/kylinssoclient/All.conf";
-    qstrcpy(conf_path,all_conf_path.toStdString().c_str());
+    QString all_conf_path = QDir::homePath() + "/.cache/kylinssoclient/";
+    QString all_conf_path2 = QDir::homePath() + "/.cache/kylinssoclient/All.conf";
+    fsWatcher.addPath(all_conf_path);
+    qstrcpy(conf_path,all_conf_path2.toStdString().c_str());
+
+    connect(&fsWatcher,&QFileSystemWatcher::directoryChanged,[this] () {
+         QFuture<void> res1 = QtConcurrent::run(this, &config_list_widget::handle_conf);
+    });
 
     //
     if(stat(conf_path, &buffer) == 0) {
@@ -367,7 +374,10 @@ void config_list_widget::finished_load(int ret,QString uuid) {
     }
    // qDebug()<<"wb222"<<ret;
     if (ret == 0) {
+        emit docheck();
         emit doconf();
+        mansync->start(5000);
+        QFuture<void> res1 = QtConcurrent::run(this, &config_list_widget::handle_conf);
     } else if(ret == 401 || ret == 203 || ret == 201) {
         emit dologout();
     }
