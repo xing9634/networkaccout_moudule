@@ -224,16 +224,15 @@ void config_list_widget::init_gui() {
     setMinimumWidth(550);
     tab->resize(200,72);
     stacked_widget->adjustSize();
-    list->resize(550,container->size().height());
     auto_syn->get_widget()->setFixedHeight(50);
     info->setFixedHeight(40);
 
     tab->setSizeIncrement(QSize(size().width(),1));
     container->setSizeIncrement(QSize(size().width(),size().height()));
-    list->setSizeIncrement(QSize(size().width(),size().height()));
 
     namewidget->setFixedHeight(36);
     list->setMinimumWidth(550);
+    list->setSizeIncrement(QSize(size().width(),size().height()));
     list->setMinimumHeight(container->size().height() - 82);
     title2->setFixedSize(96,96);
 
@@ -345,7 +344,7 @@ void config_list_widget::init_gui() {
 
     //
     setMaximumWidth(960);
-    adjustSize();
+    //adjustSize();
 }
 
 /* 打开登录框处理事件 */
@@ -410,7 +409,6 @@ void config_list_widget::finished_load(int ret,QString uuid) {
 void config_list_widget::handle_conf() {
     if(Config_File(home).Get("Auto-sync","enable").toString() == "true") {
         list->show();
-        list->adjustSize();
         auto_syn->make_itemon();
         for(int i  = 0;i < mapid.size();i ++) {
             list->get_item(i)->set_active(true);
@@ -474,7 +472,6 @@ void config_list_widget::on_auto_syn(int on,int id) {
     auto_ok = on;
     if(auto_ok) {
         list->show();
-        list->adjustSize();
     } else {
         list->hide();
     }
@@ -570,6 +567,9 @@ void config_list_widget::download_over() {
 void config_list_widget::push_over() {
     //emit docheck();
     if(exit_page->property("on") == true) {
+        if(mansync->isActive()) {
+            mansync->stop();
+        }
         gif->hide();
         exit_page->setText(tr("Exit"));
         exit_page->setProperty("on",false);
